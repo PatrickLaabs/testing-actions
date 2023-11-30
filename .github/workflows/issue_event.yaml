@@ -37,4 +37,4 @@ jobs:
         git push origin $ISSUE_TITLE
         
         # Create a pull request
-        hub pull-request -m "Add Foobar file" -b main -h $ISSUE_TITLE
+        gh pull-request -m "Add Foobar file" -b main -h $ISSUE_TITLE
