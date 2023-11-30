@@ -2,8 +2,7 @@ name: Hello World Workflow
 
 on:
   issues:
-    types:
-      - opened
+    types: [opened]
 
 jobs:
   hello-world-job:
