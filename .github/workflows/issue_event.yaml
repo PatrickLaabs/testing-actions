@@ -1,1 +1,18 @@
+name: Hello World Workflow
 
+on:
+  issues:
+    types:
+      - opened
+
+jobs:
+  hello-world-job:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+
+    - name: Run when labeled with 'New_Cluster'
+      if: contains(github.event.issue.labels.*.name, 'New_Cluster')
+      run: echo "Hello World!"
