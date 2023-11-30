@@ -22,6 +22,9 @@ jobs:
         
         # Create a new branch with the issue title
         git checkout -b $ISSUE_TITLE
+
+        git config user.name "${GITHUB_ACTOR}"
+        git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
         
         # Create a file named 'Foobar'
         echo "Content of Foobar file" > Foobar
