@@ -5,6 +5,9 @@ on:
     tags:
       - '*' # Adjust the pattern to match your SemVer tags
 
+permissions:
+  contents: write
+
 jobs:
   update_yaml_and_release:
     runs-on: ubuntu-latest
