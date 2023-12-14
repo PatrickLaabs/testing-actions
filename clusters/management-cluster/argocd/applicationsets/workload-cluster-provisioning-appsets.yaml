@@ -1,0 +1,33 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: workload-cluster-provisioning-appsets
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+  - git:
+      repoURL: 'git@github.com:eitco/argo-hub.git'
+      revision: main
+      directories:
+      - path: clusters/workload-clusters/provisioning/main/*
+  template:
+    metadata:
+      name: '{{.path.basename}}'
+    spec:
+      project: infrastructure
+      source:
+        repoURL: 'git@github.com:eitco/argo-hub.git'
+        targetRevision: main
+        path: '{{.path.path}}'
+      destination:
+        name: in-cluster
+        namespace: '{{.path.basename}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true

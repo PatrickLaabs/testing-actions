@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - certificate.yaml
+  - oidc-dp-configmap.yaml
+  - server-account.yaml
+  - server-cluster-role.yaml
+  - server-configmap.yaml
+  - server-services.yaml
+  - server-statefulset.yaml
+  - spire-bundle-configmap.yaml
+  - traefik-tls-passthrough.yaml
+

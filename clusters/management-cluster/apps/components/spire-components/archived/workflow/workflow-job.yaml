@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: workflow
+  namespace: default
+  labels:
+    app: workflow
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: workflow
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: client
+          image: ghcr.io/eitco/eitco-spire-init:latest
+          command: ["/bin/bash"]
+          args: ["/tmp/init-script.sh"]
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "250m"
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
+            - name: script-volume
+              mountPath: /tmp
+      volumes:
+        - name: spire-agent-socket
+          hostPath:
+            path: /run/spire/sockets
+            type: Directory
+        - name: script-volume
+          configMap:
+            name: initial-script

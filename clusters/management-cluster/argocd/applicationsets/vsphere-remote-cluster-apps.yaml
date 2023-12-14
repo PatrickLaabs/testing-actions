@@ -1,0 +1,30 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: vsphere-remote-cluster-apps
+  namespace: argocd
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          provider: vsphere
+  template:
+    metadata:
+      name: 'vsphere-apps-{{name}}'
+    spec:
+      project: infrastructure
+      source:
+        repoURL: 'git@github.com:eitco/argo-hub.git'
+        path: clusters/workload-clusters/apps/{{name}}
+        targetRevision: main
+      destination:
+        name: '{{name}}'
+        namespace: default
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
+        automated:
+          prune: true
+          selfHeal: true

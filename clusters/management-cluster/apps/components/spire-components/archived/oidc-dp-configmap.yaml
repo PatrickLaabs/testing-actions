@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oidc-discovery-provider
+  namespace: spire
+data:
+  oidc-discovery-provider.conf: |
+    log_level = "INFO"
+    domains = ["oidc-discovery-mgmt.projekte.eitco.de"]
+    serving_cert_file {
+      cert_file_path = "/tmp/tls.crt"
+      key_file_path = "/tmp/tls.key"
+    }
+    server_api {
+      address = "unix:///tmp/spire-server/private/api.sock"
+    }
+    health_checks {}

@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - vsphere-argocd-scripts.yaml
+  - vsphere-add-eventbus.yaml
+  - vsphere-add-eventsource.yaml
+  - vsphere-add-sensor.yaml
+  - vsphere-delete-eventbus.yaml
+  - vsphere-delete-eventsource.yaml
+  - vsphere-delete-sensor.yaml

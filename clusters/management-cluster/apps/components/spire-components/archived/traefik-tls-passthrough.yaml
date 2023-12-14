@@ -1,0 +1,16 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: oidc-discovery-sni
+  namespace: spire
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: HostSNI(`oidc-discovery-mgmt.projekte.eitco.de`)
+    services:
+    - name: spire-oidc
+      port: 443
+  tls:
+    passthrough: true
+    secretName: oidc-secret

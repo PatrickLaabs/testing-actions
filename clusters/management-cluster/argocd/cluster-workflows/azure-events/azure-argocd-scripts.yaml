@@ -1,0 +1,56 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: azure-argocd-scripts
+  namespace: argo
+data:
+  add-to-argocd.sh: |
+    #!/bin/sh
+
+    argocd login argo-hub.projekte.eitco.de --insecure --grpc-web --username admin --password $PASSWORD
+
+    cluster_ready=""
+    cluster=$1
+    while [ -z "$cluster_ready" ]
+    do
+        sleep 20
+        kubectl get cluster $cluster -n default
+        cluster_ready=$(kubectl get cluster $cluster -o json -n default | jq -r '. | select(.status.phase=="Provisioned")')
+    done
+
+    kubectl config set-cluster in-cluster --server=https://kubernetes.default.svc.cluster.local --certificate-authority=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt --embed-certs=true ;
+    kubectl config set-credentials clusterctl --token=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token) ;
+    kubectl config set-context in-cluster --cluster in-cluster --user clusterctl --namespace argocd ;
+    kubectl config use-context in-cluster ;
+
+    echo "Print in-clusters current used context: "
+    kubectl config current-context
+
+    # clusterctl get kubeconfig $cluster -n default > $HOME/.kube/azure-cluster.yaml
+    kubectl -n default get secret/$cluster-kubeconfig -o json \
+                  | jq -r .data.value \
+                  | base64 --decode \
+                  > $HOME/.kube/azure-cluster.yaml
+    export KUBECONFIG="$HOME/.kube/config:$HOME/.kube/azure-cluster.yaml"
+
+    kubectl config set-context $cluster --cluster $cluster --user $cluster-admin
+    kubectl config use-context $cluster --cluster $cluster --user $cluster-admin
+    sleep 60
+    argocd cluster add $cluster-admin@$cluster --name $cluster --label provider=azure --upsert -y --cluster-resources --namespace default
+    # Allow ArgoCD to manage all Namespaces
+    argocd cluster set $cluster --name $cluster --namespace '*'
+
+    sleep 20
+
+    echo "Adding vCluster Provider to workload Cluster"
+    clusterctl init --infrastructure vcluster
+    
+  remove-from-argocd.sh: |
+    #!/bin/sh
+
+    cluster=$1
+
+    argocd login argo-hub.projekte.eitco.de --insecure --grpc-web --username admin --password $PASSWORD
+
+    argocd cluster rm $cluster -y || true

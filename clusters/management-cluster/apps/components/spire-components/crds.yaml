@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: spire-crds
+  namespace: argocd
+  labels:
+    type: helm
+spec:
+  project: infrastructure
+  source:
+    repoURL: 'https://spiffe.github.io/helm-charts-hardened'
+    targetRevision: 0.2.0
+    chart: spire-crds
+  destination:
+    name: in-cluster
+    namespace: spire
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        maxDuration: 5m0s
+        factor: 2

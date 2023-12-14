@@ -1,0 +1,30 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: azure-remote-cluster-appsets
+  namespace: argocd
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          provider: azure
+  template:
+    metadata:
+      name: 'azure-appsets-{{name}}'
+    spec:
+      project: infrastructure
+      source:
+        repoURL: 'git@github.com:eitco/argo-hub.git'
+        path: clusters/workload-clusters/appsets
+        targetRevision: main
+      destination:
+        name: '{{name}}'
+        namespace: default
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
+        automated:
+          prune: true
+          selfHeal: true

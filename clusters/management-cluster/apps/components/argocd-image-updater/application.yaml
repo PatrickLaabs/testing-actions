@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-image-updater
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: '50'
+spec:
+  project: default
+  source:
+    repoURL: 'https://argoproj.github.io/argo-helm'
+    targetRevision: 0.9.1
+    helm:
+      releaseName: argocd-image-updater
+      values: |-
+        image:
+          repository: quay.io/argoprojlabs/argocd-image-updater
+          gitCommitUser: "eitco-github"
+          gitCommitMail: "github@eitco.de"
+          gitCommitTemplate: "Updating Images"
+    chart: argocd-image-updater
+  destination:
+    name: in-cluster
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

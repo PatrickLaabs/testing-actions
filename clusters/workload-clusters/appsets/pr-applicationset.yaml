@@ -1,0 +1,42 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: vcluster-generator
+  namespace: argocd
+spec:
+  generators:
+    - pullRequest:
+        github:
+          owner: patricklaabs
+          repo: sample-application
+          # Optional, but useful so that you don't have rate-limiting problems if
+          # using a private cluster but it's better to use a webhook if you can
+          # https://argocd-applicationset.readthedocs.io/en/main/Generators-Pull-Request/#webhook-configuration
+          # tokenRef:
+          secretName: github-token
+          key: token
+  template:
+    metadata:
+      name: 'pr-demo--{{branch}}--pr-{{number}}'
+    spec:
+      source:
+        repoURL: 'https://github.com/PatrickLaabs/sample-application.git'
+        targetRevision: 'main'
+        path: vcluster-generator
+        helm:
+          parameters:
+          - name: cluster_name
+            value: demo-pr-{{number}}
+      project: vcluster
+      destination:
+        name: in-cluster
+        namespace: vcluster
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+      ignoreDifferences:
+        - jsonPointers:
+            - /controlPlaneEndpoint
+          kind: VCluster

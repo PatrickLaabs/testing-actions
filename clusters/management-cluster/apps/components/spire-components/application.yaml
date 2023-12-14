@@ -1,0 +1,250 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: spire-components
+  namespace: argocd
+  labels:
+    type: helm
+spec:
+  project: infrastructure
+  source:
+    repoURL: 'https://spiffe.github.io/helm-charts-hardened'
+    targetRevision: 0.16.0
+    chart: spire
+    helm:
+      values: |-
+        global:
+          k8s:
+            clusterDomain: cluster.local
+          spire:
+            clusterName: management-test-cluster
+            jwtIssuer: spire-mgmt-t.projekte.eitco.de
+            trustDomain: projekte.eitco.de
+            strictMode: false
+            ingressControllerType: ""
+          telemetry:
+            prometheus:
+              enabled: false
+              podMonitor:
+                enabled: false
+                # -- Allows to install the PodMonitor in another namespace then the spire components are installed into.
+                namespace: "kube-prometheus-system"
+                labels: {}
+          installAndUpgradeHooks:
+            enabled: false
+          deleteHooks:
+            enabled: false
+
+        ## subcharts
+        spire-server:
+          tornjak: 
+            enabled: true
+            ingress:
+              enabled: true
+              className: traefik
+              controllerType: "other"
+              annotations:
+                cert-manager.io/cluster-issuer: smallstep-acme-http01
+                ingress.kubernetes.io/protocol: https
+                traefik.ingress.kubernetes.io/router.entrypoints: websecure
+                traefik.ingress.kubernetes.io/router.tls: "true"
+              hosts:
+                - host: spire-mgmt-t.projekte.eitco.de
+                  paths:
+                    - path: /api
+                      pathType: Prefix
+              tls:
+                - secretName: spire-server-tls-secret
+                  hosts:
+                    - spire-mgmt-t.projekte.eitco.de
+          nameOverride: server
+          nodeAttestor:
+            k8sPsat:
+              serviceAccountAllowList: 
+                - "spire-system:spire-agent"
+          notifier:
+            k8sbundle:
+              namespace: spire-system
+          ca_subject:
+            country: DE
+            organization: EITCO
+            common_name: EITCO
+          ingress:
+            enabled: true
+            className: traefik
+            controllerType: "other"
+            annotations:
+              cert-manager.io/cluster-issuer: smallstep-acme-http01
+              ingress.kubernetes.io/protocol: https
+              traefik.ingress.kubernetes.io/router.entrypoints: websecure
+              traefik.ingress.kubernetes.io/router.tls: "true"
+            hosts:
+              - host: spire-mgmt-t.projekte.eitco.de
+                paths:
+                  - path: /
+                    pathType: Prefix
+            tls:
+              - secretName: spire-server-tls-secret
+                hosts:
+                  - spire-mgmt-t.projekte.eitco.de
+          podSecurityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            fsGroupChangePolicy: OnRootMismatch
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: 
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          priorityClassName: system-cluster-critical
+          logLevel: info
+
+          controllerManager:
+            installAndUpgradeHook:
+              enabled: false
+            deleteHook:
+              enabled: false
+            securityContext:
+              allowPrivilegeEscalation: false
+              runAsNonRoot: true
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                  - ALL
+              seccompProfile:
+                type: RuntimeDefault
+            ignoreNamespaces:
+              - kube-system
+              - kube-public
+              - local-path-storage
+
+        spiffe-csi-driver:
+          enabled: true
+          namespaceOverride: spire-system
+          priorityClassName: system-node-critical
+
+        upstream-spiffe-csi-driver:
+          namespaceOverride: spire-system
+          priorityClassName: system-node-critical
+
+        spire-agent:
+          enabled: true
+          namespaceOverride: spire-system
+          serviceAccount:
+            name: spire-agent
+          server:
+            address: spire-components-server.spire-system
+            namespaceOverride: spire-components-server
+          priorityClassName: system-node-critical
+          podSecurityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: 
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          logLevel: info
+
+        upstream-spire-agent:
+          namespaceOverride: spire-system
+          priorityClassName: system-node-critical
+          podSecurityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: 
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          logLevel: info
+
+        spiffe-oidc-discovery-provider:
+          enabled: true
+          config:
+            additionalDomains:
+              - "oidc-discovery-mgmt-t.projekte.eitco.de"
+          insecureScheme:
+            enabled: true
+          ingress:
+            enabled: true
+            className: traefik
+            controllerType: "other"
+            annotations:
+              cert-manager.io/cluster-issuer: smallstep-acme-http01
+              ingress.kubernetes.io/protocol: https
+              traefik.ingress.kubernetes.io/router.entrypoints: websecure
+              traefik.ingress.kubernetes.io/router.tls: "true"
+            hosts:
+              - host: oidc-discovery-mgmt-t.projekte.eitco.de
+                paths:
+                  - path: /keys
+                    pathType: Prefix
+                  - path: /.well-known/openid-configuration
+                    pathType: Prefix
+            tls:
+              - secretName: oidc-tls-secret
+                hosts:
+                  - oidc-discovery-mgmt-t.projekte.eitco.de
+          podSecurityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            fsGroupChangePolicy: OnRootMismatch
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: 
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+
+        tornjak-frontend:
+          enabled: true
+          apiServerURL: "https://spire-mgmt-t.projekte.eitco.de"
+          podSecurityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            fsGroupChangePolicy: OnRootMismatch
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: 
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+  destination:
+    name: in-cluster
+    namespace: spire-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        maxDuration: 5m0s
+        factor: 2

@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kyverno-policies-components
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: '20'
+spec:
+  project: default
+  source:
+    repoURL: 'git@github.com:eitco/argo-hub.git'
+    path: clusters/management-cluster/apps/components/kyverno-policies
+    targetRevision: main
+  destination:
+    name: in-cluster
+    namespace: kyverno
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

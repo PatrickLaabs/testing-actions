@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - azure-argocd-scripts.yaml
+  - azure-add-eventbus.yaml
+  - azure-add-eventsource.yaml
+  - azure-add-sensor.yaml
+  - azure-delete-eventbus.yaml
+  - azure-delete-eventsource.yaml
+  - azure-delete-sensor.yaml

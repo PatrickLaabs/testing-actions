@@ -1,0 +1,285 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  labels:
+    cluster.x-k8s.io/cluster-name: test-two-cluster
+    traefikEnabled: default
+    cert-managerEnabled: default
+  name: test-two-cluster
+  namespace: default
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+      - 192.168.0.0/16
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    kind: KubeadmControlPlane
+    name: test-two-cluster
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: VSphereCluster
+    name: test-two-cluster
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereCluster
+metadata:
+  name: test-two-cluster
+  namespace: default
+spec:
+  controlPlaneEndpoint:
+    host: 172.30.2.187
+    port: 6443
+  identityRef:
+    kind: VSphereClusterIdentity
+    name: workloadidentity
+  server: eit-bln-svmng2.eitco.de
+  thumbprint: BD:EA:CD:F4:1A:7E:CF:A7:3F:FA:80:69:AD:03:DA:74:CE:93:3E:4E
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: test-two-cluster
+  namespace: default
+spec:
+  template:
+    spec:
+      cloneMode: linkedClone
+      datacenter: EITCO-BLN
+      datastore: datastore/VMware-Nimble-Disk001
+      diskGiB: 25
+      folder: vm/DevOps
+      memoryMiB: 4096
+      network:
+        devices:
+        - dhcp4: true
+          networkName: network/EITCO-BLN
+      numCPUs: 2
+      os: Linux
+      powerOffMode: hard
+      resourcePool: '*/Resources/Hoch'
+      server: eit-bln-svmng2.eitco.de
+      storagePolicyName: ""
+      template: ubuntu-2204-kube-v1.28.0
+      thumbprint: BD:EA:CD:F4:1A:7E:CF:A7:3F:FA:80:69:AD:03:DA:74:CE:93:3E:4E
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: test-two-cluster-worker
+  namespace: default
+spec:
+  template:
+    spec:
+      cloneMode: linkedClone
+      datacenter: EITCO-BLN
+      datastore: datastore/VMware-Nimble-Disk001
+      diskGiB: 25
+      folder: vm/DevOps
+      memoryMiB: 4096
+      network:
+        devices:
+        - dhcp4: true
+          networkName: network/EITCO-BLN
+      numCPUs: 2
+      os: Linux
+      powerOffMode: hard
+      resourcePool: '*/Resources/Hoch'
+      server: eit-bln-svmng2.eitco.de
+      storagePolicyName: ""
+      template: ubuntu-2204-kube-v1.28.0
+      thumbprint: BD:EA:CD:F4:1A:7E:CF:A7:3F:FA:80:69:AD:03:DA:74:CE:93:3E:4E
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlane
+metadata:
+  name: test-two-cluster
+  namespace: default
+spec:
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      apiServer:
+        extraArgs:
+          cloud-provider: external
+      controllerManager:
+        extraArgs:
+          cloud-provider: external
+    files:
+    - content: |
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          creationTimestamp: null
+          name: kube-vip
+          namespace: kube-system
+        spec:
+          containers:
+          - args:
+            - manager
+            env:
+            - name: cp_enable
+              value: "true"
+            - name: vip_interface
+              value: ""
+            - name: address
+              value: 172.30.2.187
+            - name: port
+              value: "6443"
+            - name: vip_arp
+              value: "true"
+            - name: vip_leaderelection
+              value: "true"
+            - name: vip_leaseduration
+              value: "15"
+            - name: vip_renewdeadline
+              value: "10"
+            - name: vip_retryperiod
+              value: "2"
+            image: ghcr.io/kube-vip/kube-vip:v0.5.11
+            imagePullPolicy: IfNotPresent
+            name: kube-vip
+            resources: {}
+            securityContext:
+              capabilities:
+                add:
+                - NET_ADMIN
+                - NET_RAW
+            volumeMounts:
+            - mountPath: /etc/kubernetes/admin.conf
+              name: kubeconfig
+          hostAliases:
+          - hostnames:
+            - kubernetes
+            ip: 127.0.0.1
+          hostNetwork: true
+          volumes:
+          - hostPath:
+              path: /etc/kubernetes/admin.conf
+              type: FileOrCreate
+            name: kubeconfig
+        status: {}
+      owner: root:root
+      path: /etc/kubernetes/manifests/kube-vip.yaml
+    initConfiguration:
+      nodeRegistration:
+        criSocket: /var/run/containerd/containerd.sock
+        kubeletExtraArgs:
+          cloud-provider: external
+        name: '{{ ds.meta_data.hostname }}'
+    joinConfiguration:
+      nodeRegistration:
+        criSocket: /var/run/containerd/containerd.sock
+        kubeletExtraArgs:
+          cloud-provider: external
+        name: '{{ ds.meta_data.hostname }}'
+    preKubeadmCommands:
+    - hostname "{{ ds.meta_data.hostname }}"
+    - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
+    - echo "127.0.0.1   localhost" >>/etc/hosts
+    - echo "127.0.0.1   {{ ds.meta_data.hostname }}" >>/etc/hosts
+    - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
+    users:
+    - name: capv
+      sshAuthorizedKeys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDH2ixjOJEhjqZSVuBxmKvrYAbFHBCXf1RCsjwkk5Ygt0778tKgVutrlQYH8QXcoV1dG8kckuqaGPgNNJ5wDFeKDJHnXyI4BTa0DtFTCIBJZjSGMUXo6aUJtQicXIJKilO8R3SZVjxrXWXcFZTTG0JI8ZNnP0Ek2vrQjqQy9EhK7efTu+0+LZ7xjctCQPgWwbxblvbDL+M/vOvpkfiwf41LpvFCdlHRCAOZ9MZHUWsBZ+Kgw1jfHM3QUHofsDsdDTe9Z3Jw+F+M+2pa19w75uXsbK3+fdtFlSM3O9YPQvRV0++Y7x1xRu2qdZvj3Xan9GB4HJfGvXdj5vNkIsMpykIwJtcIirzVR6JYDhq42jmk8bznYtu5yPubksKdYgLq9zuODXHc7Wyku01Es7KmAjLHQvfWuonq/oF6F/k0v1XhEbR2+49nUxV/HGNsTnkWBiLpZUS43JV+LdwgmGtju3tCZAnSFSRiYRB187hfyHU0cMoHwdPeIiDW1jtvfME9du8=
+      sudo: ALL=(ALL) NOPASSWD:ALL
+  machineTemplate:
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: VSphereMachineTemplate
+      name: test-two-cluster
+  replicas: 1
+  version: v1.28.0
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: test-two-cluster-md-0
+  namespace: default
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          criSocket: /var/run/containerd/containerd.sock
+          kubeletExtraArgs:
+            cloud-provider: external
+          name: '{{ ds.meta_data.hostname }}'
+      preKubeadmCommands:
+      - hostname "{{ ds.meta_data.hostname }}"
+      - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
+      - echo "127.0.0.1   localhost" >>/etc/hosts
+      - echo "127.0.0.1   {{ ds.meta_data.hostname }}" >>/etc/hosts
+      - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
+      users:
+      - name: capv
+        sshAuthorizedKeys:
+        - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDH2ixjOJEhjqZSVuBxmKvrYAbFHBCXf1RCsjwkk5Ygt0778tKgVutrlQYH8QXcoV1dG8kckuqaGPgNNJ5wDFeKDJHnXyI4BTa0DtFTCIBJZjSGMUXo6aUJtQicXIJKilO8R3SZVjxrXWXcFZTTG0JI8ZNnP0Ek2vrQjqQy9EhK7efTu+0+LZ7xjctCQPgWwbxblvbDL+M/vOvpkfiwf41LpvFCdlHRCAOZ9MZHUWsBZ+Kgw1jfHM3QUHofsDsdDTe9Z3Jw+F+M+2pa19w75uXsbK3+fdtFlSM3O9YPQvRV0++Y7x1xRu2qdZvj3Xan9GB4HJfGvXdj5vNkIsMpykIwJtcIirzVR6JYDhq42jmk8bznYtu5yPubksKdYgLq9zuODXHc7Wyku01Es7KmAjLHQvfWuonq/oF6F/k0v1XhEbR2+49nUxV/HGNsTnkWBiLpZUS43JV+LdwgmGtju3tCZAnSFSRiYRB187hfyHU0cMoHwdPeIiDW1jtvfME9du8=
+        sudo: ALL=(ALL) NOPASSWD:ALL
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  labels:
+    cluster.x-k8s.io/cluster-name: test-two-cluster
+  name: test-two-cluster-md-0
+  namespace: default
+spec:
+  clusterName: test-two-cluster
+  replicas: 3
+  selector:
+    matchLabels: {}
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: test-two-cluster
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+          name: test-two-cluster-md-0
+      clusterName: test-two-cluster
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: VSphereMachineTemplate
+        name: test-two-cluster-worker
+      version: v1.28.0
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  labels:
+    cluster.x-k8s.io/cluster-name: test-two-cluster
+  name: test-two-cluster-crs-0
+  namespace: default
+spec:
+  clusterSelector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: test-two-cluster
+  resources:
+  - kind: Secret
+    name: vsphere-csi-controller-workloadclusters
+  - kind: ConfigMap
+    name: vsphere-csi-controller-role-workloadclusters
+  - kind: ConfigMap
+    name: vsphere-csi-controller-binding-workloadclusters
+  - kind: Secret
+    name: csi-vsphere-config-workloadclusters
+  - kind: ConfigMap
+    name: csi.vsphere.vmware.com
+  - kind: ConfigMap
+    name: vsphere-csi-node-workloadclusters
+  - kind: ConfigMap
+    name: vsphere-csi-controller-workloadclusters
+  - kind: Secret
+    name: cloud-controller-manager
+  - kind: Secret
+    name: cloud-provider-vsphere-credentials
+  - kind: ConfigMap
+    name: cpi-manifests
+  - kind: ConfigMap
+    name: vsphere-storageclass-default
+  - kind: ConfigMap
+    name: smallstep-acme-http01
+  strategy: Reconcile

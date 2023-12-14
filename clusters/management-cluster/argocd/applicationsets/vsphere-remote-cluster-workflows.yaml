@@ -1,0 +1,28 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: vsphere-remote-cluster-workflows
+  namespace: argocd
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          provider: vsphere
+  template:
+    metadata:
+      name: 'vsphere-remote-cluster-workflows-{{name}}'
+    spec:
+      project: infrastructure
+      source:
+        repoURL: 'git@github.com:eitco/argo-hub.git'
+        path: clusters/workload-clusters/cluster-workflows/vcluster-events
+        targetRevision: main
+      destination:
+        name: '{{name}}'
+        namespace: default
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

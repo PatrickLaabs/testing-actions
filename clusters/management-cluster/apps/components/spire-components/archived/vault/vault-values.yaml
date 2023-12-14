@@ -1,0 +1,26 @@
+server:
+  readinessProbe:
+    enabled: true
+    path: "/v1/sys/health?standbyok=true"
+  extraEnvironmentVars:
+    VAULT_CACERT: /tmp/ca.crt
+  postStart:
+    - /bin/sh
+    - -c
+    - /vault/userconfig/arveo-vault-init/arveo-vault-init.sh
+  volumes:
+    - name: vault-userconfig-arveo-vault-init
+      secret:
+        defaultMode: 488
+        secretName: arveo-vault-init
+    - name: smallstep-ca-bundle
+      secret:
+        secretName: smallstep-ca-bundle
+  volumeMounts:
+    - name: vault-userconfig-arveo-vault-init
+      mountPath: /vault/userconfig/arveo-vault-init
+    - name: smallstep-ca-bundle
+      mountPath: /tmp/ca.crt
+      subPath: ca.crt
+      readOnly: true
+  

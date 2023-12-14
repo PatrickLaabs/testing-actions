@@ -1,0 +1,51 @@
+name: Create GitHub Release on Tag Push
+
+on:
+  push:
+    tags:
+      - '*' # Adjust the pattern to match your SemVer tags
+
+jobs:
+  update_yaml_and_release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Determine Git tag
+      id: determine_tag
+      run: echo "::set-output name=TAG::${GITHUB_REF#refs/tags/}"
+
+    - name: Replace YAML values
+      run: |
+        find ../clusters -type f -name '*.yaml' -exec sed -i "s/targetRevision: main/targetRevision: ${{ steps.determine_tag.outputs.TAG }}/g" {} +
+        find ./clusters -type f -name '*.yaml' -exec sed -i "s/revision: main/revision: ${{ steps.determine_tag.outputs.TAG }}/g" {} +
+
+    - name: Commit changes
+      run: |
+        git config --local user.email "patrick.laabs@me.com"
+        git config --local user.name "PatrickLaabs"
+        git add .
+        git commit -m "Update YAML with Git tag"
+
+    - name: Push changes to a branch named after the tag
+      run: git push origin HEAD:refs/heads/${{ steps.determine_tag.outputs.TAG }}
+
+  create_release:
+    needs: update_yaml_and_release
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ needs.update_yaml_and_release.outputs.TAG }}
+        release_name: Release ${{ needs.update_yaml_and_release.outputs.TAG }}
+        body: Release notes for ${{ needs.update_yaml_and_release.outputs.TAG }}

@@ -1,0 +1,21 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: vsphere
+  namespace: argocd
+spec:
+  clusterResourceWhitelist:
+  - group: '*'
+    kind: '*'
+  description: vSphere Clusters & Apps
+  destinations:
+  - namespace: '*'
+    name: '*'
+    server: '*'
+  namespaceResourceWhitelist:
+  - group: '*'
+    kind: '*'
+  sourceRepos:
+  - git@github.com:eitco/argo-hub.git
+  - https://spiffe.github.io/helm-charts-hardened

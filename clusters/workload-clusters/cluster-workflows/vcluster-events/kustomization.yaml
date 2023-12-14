@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - argocd-scripts.yaml
+  - vcluster-add-eventbus.yaml
+  - vcluster-add-eventsource.yaml
+  - vcluster-add-sensor.yaml
+  - vcluster-delete-eventbus.yaml
+  - vcluster-delete-eventsource.yaml
+  - vcluster-delete-sensor.yaml

@@ -1,0 +1,72 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: velero
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: '50'
+spec:
+  project: default
+  source:
+    repoURL: https://vmware-tanzu.github.io/helm-charts/
+    targetRevision: 5.1.6
+    chart: velero
+    helm:
+      releaseName: velero
+      values: |
+        cleanUpCRDs: true
+        image:
+          repository: velero/velero
+          tag: v1.11.1
+        initContainers:
+          - name: velero-plugin-for-aws
+            image: velero/velero-plugin-for-aws:v1.8.0
+            imagePullPolicy: IfNotPresent
+            volumeMounts:
+              - mountPath: /target
+                name: plugins
+          - name: velero-plugin-for-vsphere
+            image: vsphereveleroplugin/velero-plugin-for-vsphere:v1.5.2
+            imagePullPolicy: IfNotPresent
+            volumeMounts:
+              - mountPath: /target
+                name: plugins
+        configuration:
+          backupStorageLocation:
+          - name: vsphere-backupstorage
+            provider: aws
+            bucket: backupstorage
+            accessMode: ReadWrite
+            credential:
+              name: testing1234
+              key: testing5678
+            config:
+              region: minio
+              s3ForcePathStyle: true
+              s3Url: http://minio.minio.svc.cluster.local:9000
+          volumeSnapshotLocation:
+          - name: vsphere-snapshot
+            provider: aws
+            bucket: snapshotlocation
+            credential:
+              name: testing1234
+              key: testing5678
+            config:
+              region: minio
+              s3ForcePathStyle: true
+              s3Url: http://minio.minio.svc.cluster.local:9000
+  destination:
+    name: in-cluster
+    namespace: velero
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        maxDuration: 5m0s
+        factor: 2

@@ -1,0 +1,84 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: minio
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: '30'
+spec:
+  project: default
+  source:
+    repoURL: https://charts.min.io
+    targetRevision: 5.0.14
+    chart: minio
+    helm:
+      releaseName: minio
+      values: |-
+        environment:
+          MINIO_BROWSER_REDIRECT_URL: https://minio-console-mgmt-t-.projekte.eitco.de
+        ingress:
+          enabled: true
+          annotations:
+            traefik.ingress.kubernetes.io/router.entrypoints: websecure
+            cert-manager.io/cluster-issuer: smallstep-acme-http01
+            traefik.ingress.kubernetes.io/router.tls: "true"
+          path: /
+          hosts:
+            - minio-mgmt-t.projekte.eitco.de
+          tls:
+            - secretName: minio-tls
+              hosts:
+                - minio-mgmt-t.projekte.eitco.de
+        consoleIngress:
+          enabled: true
+          annotations:
+            traefik.ingress.kubernetes.io/router.entrypoints: websecure
+            cert-manager.io/cluster-issuer: smallstep-acme-http01
+            traefik.ingress.kubernetes.io/router.tls: "true"
+          path: /
+          hosts:
+            - minio-console-mgmt-t.projekte.eitco.de
+          tls:
+            - secretName: minio-console-tls
+              hosts:
+                - minio-console-mgmt-t.projekte.eitco.de
+        replicas: 1
+        rootUser: testing1234
+        rootPassword: testing5678
+        persistence:
+          enabled: true
+          existingClaim: local-path-pvc
+          storageClass: "local-path"
+          accessMode: ReadWriteOnce
+          size: 512Mi
+        resources:
+          requests:
+            memory: 500Mi
+        gateway:
+          replicas: 1
+        mode: standalone
+        buckets:
+        - name: snapshotlocation
+          policy: none
+          purge: true
+          versioning: false
+          objectlocking: false
+        - name: backupstorage
+          policy: public
+          purge: true
+          versioning: false
+          objectlocking: false
+        - name: vault-backend
+          policy: none
+          purge: true
+          versioning: false
+          objectlocking: false
+  destination:
+    name: in-cluster
+    namespace: minio
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

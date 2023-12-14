@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: oidc-certificate
+  namespace: spire
+spec:
+  secretName: oidc-secret
+  dnsNames:
+  - "oidc-discovery-mgmt.projekte.eitco.de"
+  issuerRef:
+    name: smallstep-acme-http01
+    kind: ClusterIssuer

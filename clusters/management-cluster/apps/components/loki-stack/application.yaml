@@ -1,0 +1,62 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: loki-stack
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: '30'
+spec:
+  project: default
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    targetRevision: v2.9.11
+    chart: loki-stack
+    helm:
+      releaseName: loki-stack
+      values: |
+        loki:
+          enabled: true
+          isDefault: true
+          url: http://{{(include "loki.serviceName" .)}}:{{ .Values.loki.service.port }}
+        promtail:
+          enabled: true
+          config:
+            logLevel: info
+            serverPort: 3101
+            clients:
+              - url: http://{{ .Release.Name }}:3100/loki/api/v1/push
+        fluent-bit:
+          enabled: false
+        grafana:
+          enabled: true
+          image: 
+            tag: 8.3.5
+          ingress:
+            enabled: true
+            annotations:
+              traefik.ingress.kubernetes.io/router.entrypoints: websecure
+              cert-manager.io/cluster-issuer: smallstep-acme-http01
+              traefik.ingress.kubernetes.io/router.tls: "true"
+            path: /
+            pathType: Prefix
+            hosts:
+              - grafana-mgmt-t.projekte.eitco.de
+            tls:
+              - secretName: grafana-tls
+                hosts:
+                  - grafana-mgmt-t.projekte.eitco.de
+  destination:
+    name: in-cluster
+    namespace: loki-stack
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        maxDuration: 5m0s
+        factor: 2

@@ -1,0 +1,53 @@
+server:
+  readinessProbe:
+    enabled: true
+    path: "/v1/sys/health?standbyok=true"
+  #extraEnvironmentVars:
+  #  VAULT_CACERT: /tmp/ca.crt
+  extraSecretEnvironmentVars:
+    - envName: VAULT_TOKEN
+      secretName: vault-test
+      secretKey: token
+  postStart:
+    - /bin/sh
+    - -c
+    - /vault/userconfig/arveo-vault-init/arveo-vault-init.sh
+  volumes:
+    - name: vault-userconfig-arveo-vault-init
+      secret:
+        defaultMode: 488
+        secretName: arveo-vault-init
+    #- name: smallstep-ca-bundle
+    #  secret:
+    #    secretName: smallstep-ca-bundle
+  volumeMounts:
+    - name: vault-userconfig-arveo-vault-init
+      mountPath: /vault/userconfig/arveo-vault-init
+    #- name: smallstep-ca-bundle
+    #  mountPath: /tmp/ca.crt
+    #  subPath: ca.crt
+    #  readOnly: true
+  standalone:
+    enable: true
+    config: |
+      disable_mlock = true
+      api_addr = "0.0.0.0:8200"
+
+      storage "file" {
+        path = "/vault/data"
+      }
+
+      listener "tcp" {
+        tls_disable     = 1
+        address         = "0.0.0.0:8200"
+        cluster_address = "0.0.0.0:8201"
+      }
+
+      seal "transit" {
+        address = "http://vault.vault.svc.cluster.local:8200"
+        disable_renewal = "false"
+        key_name = "vault-autounseal-test"
+        mount_path = "transit/"
+        tls_skip_verify = "true"
+        disabled = "false"
+      }
