@@ -18,7 +18,7 @@ spec:
       source:
         repoURL: 'git@github.com:eitco/argo-hub.git'
         path: clusters/workload-clusters/apps/azure-cluster/{{name}}
-        targetRevision: main
+        targetRevision: 0.1.5
       destination:
         name: '{{name}}'
         namespace: default

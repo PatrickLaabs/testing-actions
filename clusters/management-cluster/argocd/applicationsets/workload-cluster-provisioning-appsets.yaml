@@ -10,7 +10,7 @@ spec:
   generators:
   - git:
       repoURL: 'git@github.com:eitco/argo-hub.git'
-      revision: main
+      revision: 0.1.5
       directories:
       - path: clusters/workload-clusters/provisioning/main/*
   template:
@@ -20,7 +20,7 @@ spec:
       project: infrastructure
       source:
         repoURL: 'git@github.com:eitco/argo-hub.git'
-        targetRevision: main
+        targetRevision: 0.1.5
         path: '{{.path.path}}'
       destination:
         name: in-cluster
