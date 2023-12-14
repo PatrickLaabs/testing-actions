@@ -10,7 +10,7 @@ spec:
   source:
     repoURL: 'git@github.com:eitco/argo-hub.git'
     path: clusters/management-cluster/apps/components/minio
-    targetRevision: main
+    targetRevision: 0.1.4
   destination:
     name: in-cluster
     namespace: minio

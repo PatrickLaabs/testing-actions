@@ -10,7 +10,7 @@ spec:
   project: default
   source:
     repoURL: 'git@github.com:eitco/argo-hub.git'
-    targetRevision: main
+    targetRevision: 0.1.4
     path: clusters/management-cluster/apps
   syncPolicy:
     automated:

@@ -159,7 +159,7 @@ data:
       source:
         repoURL: ${repourl}
         path: workload-clusters
-        targetRevision: main
+        targetRevision: 0.1.4
       destination:
         name: in-cluster
         namespace: argocd
