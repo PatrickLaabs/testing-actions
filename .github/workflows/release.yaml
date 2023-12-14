@@ -38,23 +38,17 @@ jobs:
     - name: Push changes to a branch named after the tag
       run: git push origin HEAD:refs/heads/${{ steps.determine_tag.outputs.TAG }}
 
-  create_release:
-    needs: update_yaml_and_release
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ steps.determine_tag.outputs.TAG }}
-          fetch-depth: 0  # Fetch all history, including tags
-
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-        with:
-          tag_name: ${{ needs.update_yaml_and_release.outputs.TAG }}
-          release_name: Release ${{ needs.update_yaml_and_release.outputs.TAG }}
-          body: Release notes for ${{ needs.update_yaml_and_release.outputs.TAG }}
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ steps.determine_tag.outputs.TAG }}
+        fetch-depth: 0  # Fetch all history, including tag
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      with:
+        tag_name: ${{ steps.determine_tag.outputs.TAG }}
+        release_name: Release ${{ steps.determine_tag.outputs.TAG }}
+        body: Release notes for ${{ steps.determine_tag.outputs.TAG }}
