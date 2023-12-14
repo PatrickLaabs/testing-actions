@@ -19,7 +19,7 @@ jobs:
 
     - name: Replace YAML values
       run: |
-        find ../clusters -type f -name '*.yaml' -exec sed -i "s/targetRevision: main/targetRevision: ${{ steps.determine_tag.outputs.TAG }}/g" {} +
+        find ./clusters -type f -name '*.yaml' -exec sed -i "s/targetRevision: main/targetRevision: ${{ steps.determine_tag.outputs.TAG }}/g" {} +
         find ./clusters -type f -name '*.yaml' -exec sed -i "s/revision: main/revision: ${{ steps.determine_tag.outputs.TAG }}/g" {} +
 
     - name: Commit changes
