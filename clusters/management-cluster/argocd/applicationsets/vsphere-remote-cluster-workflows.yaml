@@ -18,7 +18,7 @@ spec:
       source:
         repoURL: 'git@github.com:eitco/argo-hub.git'
         path: clusters/workload-clusters/cluster-workflows/vcluster-events
-        targetRevision: main
+        targetRevision: 0.1.6
       destination:
         name: '{{name}}'
         namespace: default
